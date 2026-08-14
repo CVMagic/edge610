@@ -8,7 +8,7 @@ bring-up, the operating system has six independent DSA interfaces named
 bonds, firewalling, and routing with their distro's normal tools.
 
 Version 1.0.0 was validated on x86-64 with Linux
-`6.12.94-edge610-lite`. The modules use upstream kernel APIs, but out-of-tree
+`6.12.94`. The modules use upstream kernel APIs, but out-of-tree
 modules can require small source adjustments when kernel APIs change.
 
 ## What is board-specific
