@@ -1,0 +1,15 @@
+[Unit]
+Description=Initialize Edge 610 Marvell 88E6190 switch and X553 CPU link
+After=edge610-watchdog-disable.service systemd-modules-load.service
+Before=network-pre.target
+Wants=network-pre.target
+Requires=edge610-watchdog-disable.service
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/local/sbin/edge610-detect
+ExecStart=/usr/local/sbin/edge610-switch-up
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

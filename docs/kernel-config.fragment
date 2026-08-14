@@ -1,0 +1,18 @@
+# Core board-support requirements
+CONFIG_PCI=y
+CONFIG_SYSFS=y
+CONFIG_I2C=y
+CONFIG_I2C_ISMT=m
+CONFIG_I2C_CHARDEV=m
+CONFIG_NET_DSA=m
+CONFIG_NET_DSA_MV88E6XXX=m
+CONFIG_NET_DSA_TAG_DSA=m
+
+# Must be modular so edge610_switch_standalone can run before ixgbe probes.
+CONFIG_IXGBE=m
+
+# Common optional features for technician-defined network topologies.
+CONFIG_BRIDGE=m
+CONFIG_BRIDGE_VLAN_FILTERING=y
+CONFIG_VLAN_8021Q=m
+CONFIG_BONDING=m

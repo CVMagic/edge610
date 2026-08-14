@@ -1,0 +1,15 @@
+[Unit]
+Description=Disable Edge 610 board watchdogs over I2C
+After=systemd-modules-load.service
+Before=edge610-switch.service network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/local/sbin/edge610-detect
+ExecStart=/usr/local/sbin/edge610-disable-watchdog
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+

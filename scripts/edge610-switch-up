@@ -1,0 +1,37 @@
+#!/bin/sh
+set -eu
+
+edge610-detect
+[ -r /etc/edge610-hardware.conf ] && . /etc/edge610-hardware.conf
+CONDUIT=${CONDUIT:-eno1}
+modprobe edge610_switch_standalone
+modprobe ixgbe
+
+tries=0
+while [ ! -e "/sys/class/net/$CONDUIT" ] && [ "$tries" -lt 50 ]; do
+    sleep 0.1
+    tries=$((tries + 1))
+done
+[ -e "/sys/class/net/$CONDUIT" ] || {
+    echo "$CONDUIT did not appear after ixgbe loaded" >&2
+    exit 1
+}
+
+ip addr flush dev "$CONDUIT"
+ip link set "$CONDUIT" up
+modprobe mv88e6xxx
+modprobe edge610_dsa conduit_name="$CONDUIT"
+
+for port in ge1 ge2 ge3 ge4 ge5 ge6; do
+    tries=0
+    while [ ! -e "/sys/class/net/$port" ] && [ "$tries" -lt 100 ]; do
+        sleep 0.1
+        tries=$((tries + 1))
+    done
+    [ -e "/sys/class/net/$port" ] || {
+        echo "$port did not appear after DSA setup" >&2
+        exit 1
+    }
+    ip link set "$port" nomaster 2>/dev/null || true
+    ip link set "$port" up
+done

@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+modprobe i2c-ismt
+modprobe i2c-dev
+
+bus=""
+for adapter in /sys/bus/i2c/devices/i2c-*; do
+    [ -r "$adapter/name" ] || continue
+    case "$(cat "$adapter/name")" in
+        *iSMT*) bus=${adapter##*-}; break ;;
+    esac
+done
+
+if [ -z "$bus" ]; then
+    echo "Edge 610 iSMT I2C adapter not found" >&2
+    exit 1
+fi
+
+for address in 0x22 0x24; do
+    i2cset -y "$bus" "$address" 0x00 0x00 b
+    if value=$(i2cget -y "$bus" "$address" 0x00 b 2>/dev/null); then
+        [ "$value" = "0x00" ] || {
+            echo "Watchdog disable verification failed at $address: $value" >&2
+            exit 1
+        }
+        echo "Edge 610 watchdog control $address disabled (verified $value)"
+    else
+        echo "Edge 610 watchdog control $address disabled (controller quiescent)"
+    fi
+done
+
+echo "Edge 610 hardware watchdogs disabled on i2c-$bus"
+

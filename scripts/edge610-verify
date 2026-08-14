@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+
+fail=0
+[ -r /etc/edge610-hardware.conf ] && . /etc/edge610-hardware.conf
+CONDUIT=${CONDUIT:-eno1}
+check() {
+    description=$1
+    shift
+    if "$@" >/dev/null 2>&1; then
+        printf 'PASS  %s\n' "$description"
+    else
+        printf 'FAIL  %s\n' "$description"
+        fail=1
+    fi
+}
+
+check "Edge 610 hardware identity" edge610-detect
+check "standalone initializer loaded" grep -q edge610_switch_standalone /proc/modules
+check "DSA board module loaded" grep -q edge610_dsa /proc/modules
+check "Marvell DSA driver loaded" grep -q mv88e6xxx /proc/modules
+check "CPU conduit $CONDUIT exists" test -e "/sys/class/net/$CONDUIT"
+for port in ge1 ge2 ge3 ge4 ge5 ge6; do
+    check "$port exists" test -e "/sys/class/net/$port"
+done
+bus=""
+for adapter in /sys/bus/i2c/devices/i2c-*; do
+    [ -r "$adapter/name" ] || continue
+    case "$(cat "$adapter/name")" in *iSMT*) bus=${adapter##*-}; break ;; esac
+done
+if [ -n "$bus" ]; then
+    for address in 0x22 0x24; do
+        value=$(i2cget -y "$bus" "$address" 0x00 b 2>/dev/null || true)
+        if [ "$value" = 0x00 ]; then
+            printf 'PASS  watchdog %s disabled\n' "$address"
+        else
+            printf 'FAIL  watchdog %s value is %s\n' "$address" "${value:-unreadable}"
+            fail=1
+        fi
+    done
+else
+    printf 'FAIL  iSMT I2C adapter unavailable\n'
+    fail=1
+fi
+
+for port in ge1 ge2 ge3 ge4 ge5 ge6; do
+    ip -br link show "$port" 2>/dev/null || true
+done
+
+exit "$fail"

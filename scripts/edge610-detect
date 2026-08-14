@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+product=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
+board=$(cat /sys/class/dmi/id/board_name 2>/dev/null || true)
+
+case "$product $board" in
+    *EDGE610*|*Edge610*|*edge610*) ;;
+    *)
+        echo "This system does not identify as an Edge 610 (product='$product', board='$board')." >&2
+        exit 1
+        ;;
+esac
+
+if [ ! -d /sys/bus/pci/devices ]; then
+    echo "PCI sysfs is unavailable." >&2
+    exit 1
+fi
+
+found=0
+for device in /sys/bus/pci/devices/*; do
+    [ -r "$device/vendor" ] && [ -r "$device/device" ] || continue
+    if [ "$(cat "$device/vendor")" = "0x8086" ] &&
+       [ "$(cat "$device/device")" = "0x19dd" ]; then
+        found=1
+        break
+    fi
+done
+
+if [ "$found" -ne 1 ]; then
+    echo "Intel Denverton P2SB device 8086:19dd was not found." >&2
+    exit 1
+fi
+
